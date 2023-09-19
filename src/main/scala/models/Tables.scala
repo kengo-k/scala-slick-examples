@@ -14,7 +14,7 @@ trait Tables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = _PrismaMigrations.schema ++ User.schema
+  lazy val schema: profile.SchemaDescription = _PrismaMigrations.schema ++ Company.schema ++ User.schema
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -58,6 +58,32 @@ trait Tables {
   }
   /** Collection-like TableQuery object for table _PrismaMigrations */
   lazy val _PrismaMigrations = new TableQuery(tag => new _PrismaMigrations(tag))
+
+  /** Entity class storing rows of table Company
+   *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
+   *  @param name Database column name SqlType(text)
+   *  @param createdat Database column createdAt SqlType(timestamp) */
+  case class CompanyRow(id: Int, name: String, createdat: java.sql.Timestamp)
+  /** GetResult implicit for fetching CompanyRow objects using plain SQL queries */
+  implicit def GetResultCompanyRow(implicit e0: GR[Int], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[CompanyRow] = GR{
+    prs => import prs._
+    CompanyRow.tupled((<<[Int], <<[String], <<[java.sql.Timestamp]))
+  }
+  /** Table description of table Company. Objects of this class serve as prototypes for rows in queries. */
+  class Company(_tableTag: Tag) extends profile.api.Table[CompanyRow](_tableTag, "Company") {
+    def * = (id, name, createdat) <> (CompanyRow.tupled, CompanyRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = ((Rep.Some(id), Rep.Some(name), Rep.Some(createdat))).shaped.<>({r=>import r._; _1.map(_=> CompanyRow.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(serial), AutoInc, PrimaryKey */
+    val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column name SqlType(text) */
+    val name: Rep[String] = column[String]("name")
+    /** Database column createdAt SqlType(timestamp) */
+    val createdat: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("createdAt")
+  }
+  /** Collection-like TableQuery object for table Company */
+  lazy val Company = new TableQuery(tag => new Company(tag))
 
   /** Entity class storing rows of table User
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
